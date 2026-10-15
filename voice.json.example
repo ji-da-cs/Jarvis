@@ -1,0 +1,8 @@
+{
+  "name": "Studio Assistant",
+  "ptt_key": "home",
+  "mic_mode": "ptt",
+  "voice": "bm_lewis",
+  "stt_model": "small.en",
+  "permission_mode": "ask"
+}
