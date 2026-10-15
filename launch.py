@@ -55,7 +55,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--voice', action='store_true', help='Start Backtalk too')
     parser.add_argument('--port', type=int, default=8794)
+    parser.add_argument('--host', default='127.0.0.1', help='Use 0.0.0.0 behind an authenticated HTTPS proxy')
+    parser.add_argument('--cloud-voice', action='store_true', help='Receive microphone recordings from the browser')
+    parser.add_argument('--cloud-agent', action='store_true', help='Enable Claude conversation for cloud voice')
+    parser.add_argument('--stt-model', default='tiny.en', help='Whisper model name or local model directory')
     args = parser.parse_args()
+    if args.voice and (args.cloud_voice or args.cloud_agent):
+        parser.error('Choose either local --voice or browser --cloud-voice')
+    if args.cloud_agent:
+        args.cloud_voice = True
     if args.voice:
         if not shutil.which('uv'):
             parser.error('Install uv, then run: uv sync --project vendor/backtalk')
@@ -67,7 +75,15 @@ def main():
     stage = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(stage)
     (BARE / 'state').mkdir(exist_ok=True)
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), stage.Handler)
+    handler = stage.Handler
+    if args.cloud_voice:
+        sys.path.insert(0, str(BACK))
+        from cloud_voice import CloudVoice, handler_for
+        cloud = CloudVoice(stage, args.port, model=args.stt_model, agent=args.cloud_agent)
+        handler = handler_for(stage, cloud)
+    server = ThreadingHTTPServer((args.host, args.port), handler)
+    if args.cloud_voice:
+        cloud.base = f'http://127.0.0.1:{server.server_port}'
     stage._CMDS.append({'a': 'hand', 'src': '/media/models/Demo assembly.gltf',
                         'title': 'Demo assembly'})
     print(f'Motion stage: http://127.0.0.1:{args.port}/stage.html', flush=True)

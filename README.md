@@ -25,11 +25,74 @@ Drop your own `.glb` files or self-contained `.gltf` files into
 `vendor/barehands/media/models/`. glTF files with external buffers/textures must
 keep their companion files at the paths referenced by the model.
 
-## Add the voice agent
+## Cloud microphone (browser → server)
+
+The browser now captures **your computer's microphone** and sends the recording
+(or a browser-generated transcript) to the server. The cloud host needs no
+microphone, speaker device, PortAudio, keyboard hook, or Kokoro installation.
+Replies are read by your browser's built-in speech synthesis.
+
+```sh
+uv venv .venv
+uv pip install --python .venv/bin/python -r requirements-cloud.txt
+.venv/bin/python launch.py --cloud-voice --host 0.0.0.0
+```
+
+For remote access, put the server behind your **private, authenticated HTTPS
+proxy** and preserve the Host header. Browsers permit camera and microphone
+access only over HTTPS or localhost. This server has no built-in login; binding
+to all interfaces does not add authentication. Use the proxy's secure address.
+Do not expose this development server directly to the public Internet.
+
+The **Cloud voice** panel has Start microphone / Stop and send, a transcript,
+typed fallback, and a Read replies aloud option. Recording stops automatically
+after about 30 seconds and releases the microphone. Audio is decoded and
+transcribed in memory, not saved to a file. The stage, transcript, and reply are
+shared by everyone accessing this single-user server, so use one private session.
+
+Choose either transcription method:
+
+- **Whisper on server** (default): records with MediaRecorder, uploads the audio
+  after Stop, and transcribes on the cloud CPU. `tiny.en` downloads on first use
+  into ignored `.runtime/models/`; you can select another model name or an
+  existing model directory with `--stt-model`. Requires access to
+  `huggingface.co` and its model-storage hosts under `*.huggingface.co` and
+  `*.hf.co`. The current cloud network blocked that download; the allowlist
+  additions have been saved in environment settings for review and publication.
+- **Browser speech service**: uses SpeechRecognition where supported (usually
+  Chrome). The browser may send audio to its own speech provider; only the
+  transcript is submitted to this server. This avoids downloading Whisper, but
+  depends on browser/provider support. It is an explicit opt-in choice.
+
+Without agent authentication, exact board commands work immediately through
+transcripts or typed input: `show Demo assembly`, `hologram Demo assembly`,
+`explode`, `assemble`, `hover`, `reset`, and `clear`. They are deterministic board
+controls, not an LLM. Other phrases report that agent mode is off.
+
+To enable conversational requests, configure Claude authentication **on the
+server**, then start with `--cloud-agent` (which implies `--cloud-voice`):
+
+```sh
+.venv/bin/python launch.py --cloud-agent --host 0.0.0.0
+```
+
+The Claude Agent SDK uses its supported server-side authentication (e.g. Claude
+Code login or an environment-provided Anthropic credential). Never put secrets
+in source files, browser JavaScript, URLs, or chat. Access to `api.anthropic.com`
+is needed. The SDK authentication check did not succeed in this cloud instance;
+conversation has not been validated here. Cloud agent requests include the
+current model catalog and scene; each turn is independent and has **no shell or
+filesystem tools**. Only validated board tags can enqueue visual actions. In
+cloud mode commands queue when the response is ready; browser TTS plays the reply
+separately. The ring shows server processing, not browser speech playback.
+
+The native Backtalk mode below remains available for a persistent agent session
+with its original tools and spoken permission checks.
+
+## Native voice agent (local desktop)
 
 Run this on your **local computer**: Backtalk opens the microphone, speakers,
-and a global push-to-talk key on the machine running Python. A cloud server
-cannot listen to your laptop's microphone through this native integration.
+and a global push-to-talk key on the machine running Python. For a cloud server, use the browser microphone mode above instead.
 
 Prerequisites:
 
@@ -117,7 +180,8 @@ Both upstream projects are included under `vendor/` so this repository is
 self-contained. Their original docs and licenses are retained. This integration
 adds a launcher, a narrow adapter in `backtalk/board.py`, a call from
 `backtalk/signals.py`, camera-off startup and branding in `stage.html`, and an
-original procedural demo model. Upstream snapshots:
+original procedural demo model. Cloud mode adds `cloud_voice.py` and the browser
+voice panel under `web/`; it reuses the same bounded board adapter. Upstream snapshots:
 
 - Barehands: `eb23bed2d772f9d5a24de26fb92f46c3c76d69cf`
 - Backtalk: `84b3a6cd321060cabb74aad6ebe794621cf99bd3`

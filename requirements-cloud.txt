@@ -1,0 +1,5 @@
+# Headless microphone upload/transcription and Claude agent; no audio devices needed.
+faster-whisper==1.2.1
+claude-agent-sdk==0.2.168
+# PyAV 19 removed metadata_errors, which faster-whisper 1.2.1 still uses.
+av==16.1.0
