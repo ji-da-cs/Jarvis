@@ -4,15 +4,20 @@ A combined [Barehands](https://github.com/jaredrhod/barehands) +
 [Backtalk](https://github.com/jaredrhod/backtalk) workspace: manipulate 3D models
 with your hands while talking to a Claude Code agent that shares the same stage.
 
-## Start the motion stage
+## Start motion and microphone together
 
-Requires Python 3.11 or 3.12 and Chrome on a computer with a webcam.
+Requires Python 3.11 or 3.12 and Chrome on a computer with a webcam and microphone.
 
 ```sh
 python3 launch.py
 ```
 
-Open the address printed by the launcher in Chrome and allow camera access.
+That single command starts the motion stage and browser microphone controls.
+On first run it automatically prepares the voice dependencies in `.venv/`; later
+runs reuse them. Open the printed address in Chrome, allow camera access, and
+click **Start microphone** in the Cloud voice panel to talk. Microphone access
+is requested only when you click the button. Use `--motion-only` to skip voice
+dependencies, or `--voice` for the optional native desktop Backtalk mode.
 A six-piece demo assembly is queued automatically. For model/voice work without
 a webcam, append `?camera=0` to the printed stage address; gesture tracking is
 disabled in that mode. Pinch-drag to move it, hold
@@ -33,9 +38,7 @@ microphone, speaker device, PortAudio, keyboard hook, or Kokoro installation.
 Replies are read by your browser's built-in speech synthesis.
 
 ```sh
-uv venv .venv
-uv pip install --python .venv/bin/python -r requirements-cloud.txt
-.venv/bin/python launch.py --cloud-voice --host 0.0.0.0
+python3 launch.py --host 0.0.0.0
 ```
 
 For remote access, put the server behind your **private, authenticated HTTPS
@@ -64,16 +67,16 @@ Choose either transcription method:
   transcript is submitted to this server. This avoids downloading Whisper, but
   depends on browser/provider support. It is an explicit opt-in choice.
 
-Without agent authentication, exact board commands work immediately through
+Once a transcription method is available, exact board commands work without agent authentication through
 transcripts or typed input: `show Demo assembly`, `hologram Demo assembly`,
 `explode`, `assemble`, `hover`, `reset`, and `clear`. They are deterministic board
 controls, not an LLM. Other phrases report that agent mode is off.
 
 To enable conversational requests, configure Claude authentication **on the
-server**, then start with `--cloud-agent` (which implies `--cloud-voice`):
+server**, then start with `--cloud-agent`:
 
 ```sh
-.venv/bin/python launch.py --cloud-agent --host 0.0.0.0
+python3 launch.py --cloud-agent --host 0.0.0.0
 ```
 
 The Claude Agent SDK uses its supported server-side authentication (e.g. Claude
