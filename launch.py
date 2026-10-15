@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Launch the combined motion stage and optional local voice agent."""
+"""Start motion tracking and browser microphone controls together."""
 import argparse
 import importlib.util
 import json
@@ -51,11 +51,64 @@ def prepare_config(port):
     return path
 
 
-def main():
+def ensure_cloud_python():
+    """Reuse or prepare the cloud environment, then run this same launcher."""
+    import importlib.metadata
+    try:
+        ready = all(importlib.metadata.version(name) == version for name, version in (
+            ('faster-whisper', '1.2.1'), ('claude-agent-sdk', '0.2.168'), ('av', '16.1.0')))
+    except importlib.metadata.PackageNotFoundError:
+        ready = False
+    if ready:
+        return
+    python = ROOT / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    check = [str(python), '-c',
+             'import importlib.metadata as m; assert all(m.version(n)==v for n,v in '
+             '[("faster-whisper","1.2.1"),("claude-agent-sdk","0.2.168"),("av","16.1.0")])']
+    if not python.exists() or subprocess.run(check, capture_output=True).returncode:
+        print('Preparing microphone dependencies (first run only)…', flush=True)
+        uv = shutil.which('uv')
+        if uv:
+            if not python.exists():
+                subprocess.run([uv, 'venv', str(ROOT / '.venv')], check=True)
+            subprocess.run([uv, 'pip', 'install', '--python', str(python),
+                            '-r', str(ROOT / 'requirements-cloud.txt')], check=True,
+                           env={**os.environ, 'UV_CACHE_DIR': os.environ.get(
+                               'UV_CACHE_DIR', str(ROOT / '.runtime' / 'uv-cache'))})
+        else:
+            if not python.exists():
+                subprocess.run([sys.executable, '-m', 'venv', str(ROOT / '.venv')], check=True)
+            subprocess.run([str(python), '-m', 'ensurepip', '--upgrade'], check=True)
+            subprocess.run([str(python), '-m', 'pip', 'install',
+                            '-r', str(ROOT / 'requirements-cloud.txt')], check=True)
+    os.execv(str(python), [str(python), str(ROOT / 'launch.py'), *sys.argv[1:]])
+
+
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--voice', action='store_true', help='Start Backtalk too')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--voice', action='store_true', help='Use native desktop Backtalk instead of the browser microphone')
+    modes.add_argument('--motion-only', action='store_true', help='Disable microphone controls and skip voice dependencies')
+    modes.add_argument('--cloud-voice', action='store_true', help='Compatibility alias: browser microphone is enabled by default')
     parser.add_argument('--port', type=int, default=8794)
-    args = parser.parse_args()
+    parser.add_argument('--host', default='127.0.0.1', help='Use 0.0.0.0 behind an authenticated HTTPS proxy')
+    parser.add_argument('--cloud-agent', action='store_true', help='Enable Claude conversation for browser voice')
+    parser.add_argument('--stt-model', default='tiny.en', help='Whisper model name or local model directory')
+    args = parser.parse_args(argv)
+    if args.cloud_agent and (args.voice or args.motion_only):
+        parser.error('--cloud-agent requires browser microphone mode')
+    args.cloud_voice = not args.voice and not args.motion_only
+    return args
+
+
+def main():
+    args = parse_args()
+    if args.cloud_voice:
+        try:
+            ensure_cloud_python()
+        except (OSError, subprocess.CalledProcessError) as error:
+            print(f'Microphone dependency setup failed: {error}. Check network access and Python venv support, then rerun launch.py.', file=sys.stderr)
+            return 1
     if args.voice:
         if not shutil.which('uv'):
             parser.error('Install uv, then run: uv sync --project vendor/backtalk')
@@ -67,11 +120,21 @@ def main():
     stage = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(stage)
     (BARE / 'state').mkdir(exist_ok=True)
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), stage.Handler)
+    handler = stage.Handler
+    if args.cloud_voice:
+        sys.path.insert(0, str(BACK))
+        from cloud_voice import CloudVoice, handler_for
+        cloud = CloudVoice(stage, args.port, model=args.stt_model, agent=args.cloud_agent)
+        handler = handler_for(stage, cloud)
+    server = ThreadingHTTPServer((args.host, args.port), handler)
+    if args.cloud_voice:
+        cloud.base = f'http://127.0.0.1:{server.server_port}'
     stage._CMDS.append({'a': 'hand', 'src': '/media/models/Demo assembly.gltf',
                         'title': 'Demo assembly'})
-    print(f'Motion stage: http://127.0.0.1:{args.port}/stage.html', flush=True)
+    print(f'Motion stage: http://127.0.0.1:{server.server_port}/stage.html', flush=True)
     print('Open in Chrome and allow the camera. Ctrl-C stops this launcher.', flush=True)
+    if args.cloud_voice:
+        print('Microphone controls ready: use Start microphone on the same page. HTTPS is required for remote access.', flush=True)
     voice = None
     try:
         if args.voice:

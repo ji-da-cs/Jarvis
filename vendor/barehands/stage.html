@@ -1630,6 +1630,7 @@ async function cycleCam() {
 }
 
 addEventListener("keydown", e => {
+  if (e.target.closest?.("input, textarea, select, button, [contenteditable]")) return;
   // live respawn: re-read the notes AND props trees from disk before
   // redrawing — a freshly dropped file appears on a plain R press
   if (e.key === "r" || e.key === "R") loadTree().then(() => spawnStage());
@@ -3157,5 +3158,6 @@ if (ROLE === "render") {
   });
 }
 </script>
+<script src="/voice-client.js" defer></script>
 </body>
 </html>
