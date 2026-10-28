@@ -134,7 +134,7 @@ def main():
     print(f'Motion stage: http://127.0.0.1:{server.server_port}/stage.html', flush=True)
     print('Open in Chrome and allow the camera. Ctrl-C stops this launcher.', flush=True)
     if args.cloud_voice:
-        print('Microphone controls ready: use Start microphone on the same page. HTTPS is required for remote access.', flush=True)
+        print('Microphone controls ready: hold Space on the same page to talk (V shows the panel). HTTPS is required for remote access.', flush=True)
     voice = None
     try:
         if args.voice:

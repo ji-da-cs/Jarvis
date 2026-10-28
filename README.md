@@ -15,8 +15,9 @@ python3 launch.py
 That single command starts the motion stage and browser microphone controls.
 On first run it automatically prepares the voice dependencies in `.venv/`; later
 runs reuse them. Open the printed address in Chrome, allow camera access, and
-click **Start microphone** in the Cloud voice panel to talk. Microphone access
-is requested only when you click the button. Use `--motion-only` to skip voice
+hold **Space** to talk; release it to send. Press **V** to show or hide the
+Cloud voice panel (hidden by default). Microphone access is requested only when
+you first talk. Use `--motion-only` to skip voice
 dependencies, or `--voice` for the optional native desktop Backtalk mode.
 A six-piece demo assembly is queued automatically. For model/voice work without
 a webcam, append `?camera=0` to the printed stage address; gesture tracking is
@@ -47,8 +48,10 @@ access only over HTTPS or localhost. This server has no built-in login; binding
 to all interfaces does not add authentication. Use the proxy's secure address.
 Do not expose this development server directly to the public Internet.
 
-The **Cloud voice** panel has Start microphone / Stop and send, a transcript,
-typed fallback, and a Read replies aloud option. Recording stops automatically
+Hold **Space** to record and release to send; while the panel is hidden, a small
+status pill shows what was heard and the reply. Press **V** to open the **Cloud
+voice** panel, which has Start microphone / Stop and send, a transcript, typed
+fallback, and a Read replies aloud option. Recording stops automatically
 after about 30 seconds and releases the microphone. Audio is decoded and
 transcribed in memory, not saved to a file. The stage, transcript, and reply are
 shared by everyone accessing this single-user server, so use one private session.
