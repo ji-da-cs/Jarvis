@@ -72,8 +72,14 @@ Choose either transcription method:
 
 Once a transcription method is available, exact board commands work without agent authentication through
 transcripts or typed input: `show Demo assembly`, `hologram Demo assembly`,
-`explode`, `assemble`, `hover`, `reset`, and `clear`. They are deterministic board
+`disassemble`, `assemble`, `hover`, `reset`, and `clear`. They are deterministic board
 controls, not an LLM. Other phrases report that agent mode is off.
+
+`show NAME` finds any file in `media/models`, `media/fx`, `media/holo`, or
+`media/misc` by filename, stem, or folder path (e.g. `show fireball`,
+`show misc/glass-hands`). The folder decides how it renders: `holo/` as the blue
+hologram, `fx/` frameless. `hologram NAME` forces the hologram look and works
+only on `.glb`/`.gltf` models.
 
 To enable conversational requests, configure Claude authentication **on the
 server**, then start with `--cloud-agent`:
@@ -127,7 +133,7 @@ hand tracking and rendering need the CDNs referenced in `stage.html`.
 Hold **Home**, speak, and release. Try:
 
 - “Show the Demo assembly as a hologram.”
-- “Explode the model. Explain how the pieces fit.”
+- “Disassemble the model. Explain how the pieces fit.”
 - “Put it back together.”
 - “Highlight that model.”
 - “Reset the stage.”
@@ -142,7 +148,7 @@ The launcher generates `.runtime/backtalk.json`, wiring the agent's working
 folder, board URL, shared state, and board vocabulary. `voice.json` is an optional
 user overlay, never overwritten. Push-to-talk and Backtalk's existing permission
 prompts remain the defaults. The stage bridge only accepts show, hologram,
-explode, assemble, hover, reset and clear; it cannot execute shell commands.
+disassemble, assemble, hover, reset and clear; it cannot execute shell commands.
 The Claude agent retains Backtalk's normal tools and permission checks.
 
 Ctrl-C stops the processes started by this launcher. `--port 9000` selects a
@@ -156,7 +162,7 @@ With the launcher running:
 ```sh
 python3 tools/board.py models
 python3 tools/board.py 'show Demo assembly'
-python3 tools/board.py explode
+python3 tools/board.py disassemble
 python3 tools/board.py assemble
 python3 tools/board.py state
 python3 -m unittest discover -s tests -v

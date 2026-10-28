@@ -43,7 +43,7 @@ def main():
             dispatch(['board:show Demo assembly'], base)
             page.wait_for_function(
                 'document.querySelector(".modelcard canvas")?.width > 300')
-            dispatch(['board:explode'], base)
+            dispatch(['board:disassemble'], base)
             page.wait_for_function('''async () =>
                 (await (await fetch('/state')).json()).items.some(
                     i => i.type === 'model' && i.ex === 1)''')
@@ -57,7 +57,7 @@ def main():
             page.screenshot(path=str(output / 'browser-smoke.png'))
             if errors:
                 raise RuntimeError('; '.join(errors))
-            print('Passed: model canvas initialized; explode and assemble reached the live scene; no JavaScript errors.')
+            print('Passed: model canvas initialized; disassemble and assemble reached the live scene; no JavaScript errors.')
         finally:
             browser.close()
 

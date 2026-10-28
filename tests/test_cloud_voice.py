@@ -57,10 +57,10 @@ class CloudVoiceTests(unittest.TestCase):
             def transcribe(self, pcm, **kwargs):
                 if len(pcm) < 1000:
                     raise AssertionError('Recording did not decode into PCM audio')
-                return [SimpleNamespace(text='explode')], None
+                return [SimpleNamespace(text='disassemble')], None
         with patch.object(self.voice, 'model', Recognizer()):
             text = self.voice.transcribe((ROOT / 'tests/fixtures/browser-mic.webm').read_bytes())
-        self.assertEqual(text, 'explode')
+        self.assertEqual(text, 'disassemble')
 
     def test_uploaded_audio_reaches_transcriber_and_board(self):
         with patch.object(self.voice, 'transcribe', return_value='show Demo assembly') as transcribe:
@@ -73,7 +73,7 @@ class CloudVoiceTests(unittest.TestCase):
         self.assertEqual((stage.HERE / 'state/state').read_text(), 'idle')
 
     def test_typed_fallback_and_unknown_model(self):
-        code, result = self.post('/voice/text', b'{"text":"explode"}')
+        code, result = self.post('/voice/text', b'{"text":"disassemble"}')
         self.assertEqual((code, result['commands_queued']), (200, 1))
         stage._CMDS.clear()
         code, _ = self.post('/voice/text', b'{"text":"show absent-model"}')
@@ -116,7 +116,7 @@ class CloudVoiceTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 413)
 
     def test_bad_agent_actions_do_not_partially_execute(self):
-        with patch.object(self.voice, 'answer', return_value='<<board:explode>><<board:show missing>>Here.'):
+        with patch.object(self.voice, 'answer', return_value='<<board:disassemble>><<board:show missing>>Here.'):
             code, _ = self.post('/voice/text', b'{"text":"request"}')
         self.assertEqual(code, 400)
         self.assertEqual(stage._CMDS, [])

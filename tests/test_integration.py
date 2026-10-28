@@ -51,12 +51,27 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(model['asset']['version'], '2.0')
 
     def test_voice_action_order_and_hologram(self):
-        dispatch(['board:hologram Demo assembly', 'board:explode',
+        dispatch(['board:hologram Demo assembly', 'board:disassemble',
                   'board:assemble Demo assembly'], self.base)
         commands = request(self.base, '/state', {})
         self.assertEqual([c['a'] for c in commands], ['hand', 'explode', 'assemble'])
         self.assertEqual(commands[0]['mode'], 'holo')
         self.assertEqual(commands[2]['title'], 'Demo assembly')
+
+    def test_show_props_from_every_media_folder(self):
+        dispatch(['board:show fireball', 'board:show glass-hands',
+                  'board:show misc/glass-hands'], self.base)
+        commands = request(self.base, '/state', {})
+        self.assertEqual([c['src'] for c in commands],
+                         ['/media/fx/fireball.png', '/media/misc/glass-hands.png',
+                          '/media/misc/glass-hands.png'])
+        self.assertTrue(all('mode' not in c for c in commands))
+
+    def test_hologram_rejects_images_and_explode_is_renamed(self):
+        with self.assertRaises(ValueError):
+            command('board:hologram fireball', self.base)
+        with self.assertRaises(ValueError):
+            command('board:explode', self.base)
 
     def test_no_arbitrary_actions_or_unknown_models(self):
         with contextlib.redirect_stderr(io.StringIO()) as errors:
@@ -85,7 +100,7 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(config['permission_mode'], 'ask')
             self.assertEqual(config['board_url'], 'http://127.0.0.1:9123')
             self.assertIn('Be brief.', config['discipline_append'])
-            self.assertIn('board:explode', config['discipline_append'])
+            self.assertIn('board:disassemble', config['discipline_append'])
             self.assertEqual((root / 'voice.json').read_text(), source)
 
 

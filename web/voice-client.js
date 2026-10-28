@@ -24,7 +24,7 @@
     <label>Transcription <select id="voice-source" aria-label="Transcription method"><option value="server">Whisper on server</option><option value="browser">Browser speech service</option></select></label>
     <p><button id="voice-record" type="button">Start microphone</button></p>
     <p id="voice-status" role="status" aria-live="polite">Hold Space to talk (up to ${settings.max_seconds}s). Press V to hide this panel.</p>
-    <form><input aria-label="Voice command or agent message" placeholder="Or type: explode" maxlength="4000" required><button type="submit">Send</button></form>
+    <form><input aria-label="Voice command or agent message" placeholder="Or type: disassemble" maxlength="4000" required><button type="submit">Send</button></form>
     <label><input id="voice-speak" type="checkbox" checked> Read replies aloud</label>
     <p id="voice-reply" aria-live="polite"></p>`;
   document.body.append(panel);

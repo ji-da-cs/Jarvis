@@ -19,18 +19,25 @@ BACK = ROOT / 'vendor' / 'backtalk'
 BOARD_DISCIPLINE = '''You share a live 3D stage controlled by the user's hands.
 For requested board actions, put one of these silent tags BEFORE a spoken
 sentence: <<board:show Demo assembly>>, <<board:hologram Demo assembly>>,
-<<board:explode>>, <<board:assemble>>, <<board:hover>>, <<board:reset>>,
-<<board:clear>>. Show accepts a unique model filename/stem from the media folder;
-explode/assemble/hover optionally accept a title. Never invent other tags.
+<<board:disassemble>>, <<board:assemble>>, <<board:hover>>, <<board:reset>>,
+<<board:clear>>. Show accepts a unique filename/stem from any media subfolder
+(models, fx, holo, misc); hologram accepts only .glb/.gltf models.
+disassemble/assemble/hover optionally accept a title. Never invent other tags.
 Tags execute when their accompanying sentence starts playing. Always include a
 spoken sentence after a tag. Board actions only affect this local visual stage.
-For available models read vendor/barehands/media/models or GET /props at board_url.
+For available models and props read vendor/barehands/media or GET /props at board_url.
 For scene context GET /state at board_url using a read-only tool. Do not claim
 that an action succeeded without checking the current scene; a closed stage tab
 cannot consume commands. Gestures independently move, rotate, scale and explode
 models. Do not edit files to manipulate the scene. Other agent tools retain their
 normal permission checks. Do not change permission_mode or access credentials.
 '''
+
+
+class StageServer(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a second server bind a port that is already
+    # in use, so requests silently reach whichever stale launcher answers.
+    allow_reuse_address = os.name != 'nt'
 
 
 def prepare_config(port):
@@ -81,7 +88,15 @@ def ensure_cloud_python():
             subprocess.run([str(python), '-m', 'ensurepip', '--upgrade'], check=True)
             subprocess.run([str(python), '-m', 'pip', 'install',
                             '-r', str(ROOT / 'requirements-cloud.txt')], check=True)
-    os.execv(str(python), [str(python), str(ROOT / 'launch.py'), *sys.argv[1:]])
+    argv = [str(python), str(ROOT / 'launch.py'), *sys.argv[1:]]
+    if os.name == 'nt':
+        # Windows execv spawns a detached child and exits, so the terminal
+        # returns while the server keeps running and Ctrl-C never reaches it.
+        try:
+            sys.exit(subprocess.call(argv))
+        except KeyboardInterrupt:
+            sys.exit(0)
+    os.execv(str(python), argv)
 
 
 def parse_args(argv=None):
@@ -126,7 +141,12 @@ def main():
         from cloud_voice import CloudVoice, handler_for
         cloud = CloudVoice(stage, args.port, model=args.stt_model, agent=args.cloud_agent)
         handler = handler_for(stage, cloud)
-    server = ThreadingHTTPServer((args.host, args.port), handler)
+    try:
+        server = StageServer((args.host, args.port), handler)
+    except OSError as error:
+        print(f'Port {args.port} is unavailable ({error.strerror or error}). Another launcher may '
+              'still be running; stop it or choose --port.', file=sys.stderr)
+        return 1
     if args.cloud_voice:
         cloud.base = f'http://127.0.0.1:{server.server_port}'
     stage._CMDS.append({'a': 'hand', 'src': '/media/models/Demo assembly.gltf',

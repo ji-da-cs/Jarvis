@@ -39,7 +39,7 @@ class LauncherTests(unittest.TestCase):
                 self.assertIn(b'/voice-client.js', response.read())
             with urlopen(base + '/voice-client.js', timeout=5) as response:
                 self.assertIn(b'getUserMedia', response.read())
-            req = Request(base + '/voice/text', data=b'{"text":"explode"}',
+            req = Request(base + '/voice/text', data=b'{"text":"disassemble"}',
                           headers={'Content-Type': 'application/json'})
             with urlopen(req, timeout=5) as response:
                 self.assertEqual(json.load(response)['commands_queued'], 1)
