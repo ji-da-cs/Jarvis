@@ -25,12 +25,28 @@ def request(base, path, payload=None):
         return json.loads(body) if body else None
 
 
-def model_paths(tree):
-    for item in tree.get('items', []):
-        if PurePosixPath(item).suffix.lower() in ('.glb', '.gltf'):
-            yield item
+MODEL_SUFFIXES = ('.glb', '.gltf')
+# Spoken verb -> stage action. "disassemble" drives the stage's explode view.
+VERBS = {'disassemble': 'explode', 'assemble': 'assemble', 'hover': 'hover'}
+
+
+def media_paths(tree):
+    """Every stageable file in the media airlock: models/, fx/, holo/, misc/."""
+    yield from tree.get('items', [])
     for child in tree.get('dirs', []):
-        yield from model_paths(child)
+        yield from media_paths(child)
+
+
+def find_media(target, base):
+    paths = list(media_paths(request(base, '/props')))
+    key = target.casefold()
+    # Exact match on path, path without extension, or file stem; else substring.
+    exact = [p for p in paths if key in (p.casefold(), str(PurePosixPath(p).with_suffix('')).casefold(),
+                                         PurePosixPath(p).stem.casefold())]
+    matches = exact or [p for p in paths if key in p.casefold()]
+    if len(matches) != 1:
+        raise ValueError(f'Name must match exactly one media file: {target}')
+    return matches[0]
 
 
 def command(direction, base):
@@ -41,18 +57,18 @@ def command(direction, base):
     target = target.strip()
     if verb in ('show', 'hologram'):
         if not target:
-            raise ValueError('Name a model to show')
-        paths = list(model_paths(request(base, '/props')))
-        exact = [p for p in paths if target.casefold() in
-                 (p.casefold(), PurePosixPath(p).stem.casefold())]
-        matches = exact or [p for p in paths if target.casefold() in p.casefold()]
-        if len(matches) != 1:
-            raise ValueError(f'Model name must match exactly one file: {target}')
-        return {'a': 'hand', 'src': '/media/' + matches[0],
-                'title': PurePosixPath(matches[0]).stem,
-                'mode': 'holo' if verb == 'hologram' else 'solid'}
-    if verb in ('explode', 'assemble', 'hover'):
-        return {'a': verb, **({'title': target} if target else {})}
+            raise ValueError('Name a model or prop to show')
+        path = find_media(target, base)
+        cmd = {'a': 'hand', 'src': '/media/' + path, 'title': PurePosixPath(path).stem}
+        if verb == 'hologram':
+            if PurePosixPath(path).suffix.lower() not in MODEL_SUFFIXES:
+                raise ValueError(f'Hologram needs a 3D model, not an image: {target}')
+            cmd['mode'] = 'holo'
+        # "show" leaves mode unset so the folder decides: holo/ renders as the
+        # blue wire, fx/ renders frameless, models/ and misc/ render normally.
+        return cmd
+    if verb in VERBS:
+        return {'a': VERBS[verb], **({'title': target} if target else {})}
     if verb in ('reset', 'clear') and not target:
         return {'a': verb}
     raise ValueError(f'Unsupported board direction: {verb}')

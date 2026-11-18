@@ -15,8 +15,9 @@ python3 launch.py
 That single command starts the motion stage and browser microphone controls.
 On first run it automatically prepares the voice dependencies in `.venv/`; later
 runs reuse them. Open the printed address in Chrome, allow camera access, and
-click **Start microphone** in the Cloud voice panel to talk. Microphone access
-is requested only when you click the button. Use `--motion-only` to skip voice
+hold **Space** to talk; release it to send. Press **V** to show or hide the
+Cloud voice panel (hidden by default). Microphone access is requested only when
+you first talk. Use `--motion-only` to skip voice
 dependencies, or `--voice` for the optional native desktop Backtalk mode.
 A six-piece demo assembly is queued automatically. For model/voice work without
 a webcam, append `?camera=0` to the printed stage address; gesture tracking is
@@ -47,8 +48,10 @@ access only over HTTPS or localhost. This server has no built-in login; binding
 to all interfaces does not add authentication. Use the proxy's secure address.
 Do not expose this development server directly to the public Internet.
 
-The **Cloud voice** panel has Start microphone / Stop and send, a transcript,
-typed fallback, and a Read replies aloud option. Recording stops automatically
+Hold **Space** to record and release to send; while the panel is hidden, a small
+status pill shows what was heard and the reply. Press **V** to open the **Cloud
+voice** panel, which has Start microphone / Stop and send, a transcript, typed
+fallback, and a Read replies aloud option. Recording stops automatically
 after about 30 seconds and releases the microphone. Audio is decoded and
 transcribed in memory, not saved to a file. The stage, transcript, and reply are
 shared by everyone accessing this single-user server, so use one private session.
@@ -69,8 +72,14 @@ Choose either transcription method:
 
 Once a transcription method is available, exact board commands work without agent authentication through
 transcripts or typed input: `show Demo assembly`, `hologram Demo assembly`,
-`explode`, `assemble`, `hover`, `reset`, and `clear`. They are deterministic board
+`disassemble`, `assemble`, `hover`, `reset`, and `clear`. They are deterministic board
 controls, not an LLM. Other phrases report that agent mode is off.
+
+`show NAME` finds any file in `media/models`, `media/fx`, `media/holo`, or
+`media/misc` by filename, stem, or folder path (e.g. `show fireball`,
+`show misc/glass-hands`). The folder decides how it renders: `holo/` as the blue
+hologram, `fx/` frameless. `hologram NAME` forces the hologram look and works
+only on `.glb`/`.gltf` models.
 
 To enable conversational requests, configure Claude authentication **on the
 server**, then start with `--cloud-agent`:
@@ -124,7 +133,7 @@ hand tracking and rendering need the CDNs referenced in `stage.html`.
 Hold **Home**, speak, and release. Try:
 
 - “Show the Demo assembly as a hologram.”
-- “Explode the model. Explain how the pieces fit.”
+- “Disassemble the model. Explain how the pieces fit.”
 - “Put it back together.”
 - “Highlight that model.”
 - “Reset the stage.”
@@ -139,7 +148,7 @@ The launcher generates `.runtime/backtalk.json`, wiring the agent's working
 folder, board URL, shared state, and board vocabulary. `voice.json` is an optional
 user overlay, never overwritten. Push-to-talk and Backtalk's existing permission
 prompts remain the defaults. The stage bridge only accepts show, hologram,
-explode, assemble, hover, reset and clear; it cannot execute shell commands.
+disassemble, assemble, hover, reset and clear; it cannot execute shell commands.
 The Claude agent retains Backtalk's normal tools and permission checks.
 
 Ctrl-C stops the processes started by this launcher. `--port 9000` selects a
@@ -153,7 +162,7 @@ With the launcher running:
 ```sh
 python3 tools/board.py models
 python3 tools/board.py 'show Demo assembly'
-python3 tools/board.py explode
+python3 tools/board.py disassemble
 python3 tools/board.py assemble
 python3 tools/board.py state
 python3 -m unittest discover -s tests -v
